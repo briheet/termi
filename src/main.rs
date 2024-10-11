@@ -1,31 +1,27 @@
-use std::os::fd::RawFd;
-
-fn spawn_pty_with_shell(_default_shell: String) -> RawFd {
-    unimplemented!()
-}
-
-fn read_from_fd(_fd: RawFd) -> Option<Vec<u8>> {
-    unimplemented!()
-}
+use eframe::egui;
 
 fn main() {
-    let default_shell =
-        std::env::var("SHELL").expect("could not find the default shell form $SHELL");
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(
+        "My egui App",
+        native_options,
+        Box::new(|cc| Ok(Box::new(TermiGui::new(cc)))),
+    );
+}
 
-    // println!("{}", default_shell);
-    let stdout_pty = spawn_pty_with_shell(default_shell);
+#[derive(Default)]
+struct TermiGui {}
 
-    let mut read_buffer = vec![];
+impl TermiGui {
+    fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        Self::default()
+    }
+}
 
-    loop {
-        match read_from_fd(stdout_pty) {
-            Some(mut read_bytes) => {
-                read_buffer.append(&mut read_bytes);
-            }
-            None => {
-                println!("{:?}", String::from_utf8(read_buffer).unwrap());
-                std::process::exit(0)
-            }
-        }
+impl eframe::App for TermiGui {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Hello World!");
+        });
     }
 }

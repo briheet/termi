@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 eframe = "0.29.1"
-egui = "0.29.1"
+nix = { version = "0.29.0", features = ["term"] } # Update to 0.30 or later
