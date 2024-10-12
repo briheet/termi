@@ -5,7 +5,7 @@ use std::{
     ffi::{CStr, CString},
     fs::File,
     io::Read,
-    os::fd::{IntoRawFd, OwnedFd, RawFd},
+    os::fd::OwnedFd,
 };
 
 fn main() {
@@ -14,10 +14,20 @@ fn main() {
         match res.fork_result {
             ForkResult::Parent { .. } => (),
             ForkResult::Child => {
-                let shell_name_bytes = b"ash\0";
+                let shell_name_bytes = b"bash\0";
                 let shell_name = CStr::from_bytes_with_nul(shell_name_bytes)
                     .expect("CStr::from_bytes_with_nul failed");
-                nix::unistd::execvp::<CString>(shell_name, &[]).unwrap();
+
+                let args: &[&[u8]] = &[b"--noprofile\0", b"--norc\0"];
+
+                let args: Vec<&'static CStr> = args
+                    .iter()
+                    .map(|v| {
+                        CStr::from_bytes_with_nul(v).expect("Should always have null terminator")
+                    })
+                    .collect::<Vec<_>>();
+
+                nix::unistd::execvp(shell_name, &args).unwrap();
                 return;
             }
         }
@@ -33,14 +43,14 @@ fn main() {
 }
 
 struct TermiGui {
-    buf: String,
+    buf: Vec<u8>,
     fd: File,
 }
 
 impl TermiGui {
     fn new(_cc: &eframe::CreationContext<'_>, fd: OwnedFd) -> Self {
         TermiGui {
-            buf: String::new(),
+            buf: Vec::new(),
             fd: fd.into(),
         }
     }
@@ -48,10 +58,18 @@ impl TermiGui {
 
 impl eframe::App for TermiGui {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let mut buf = vec![0u8; 4098];
-        match self.fd.read(&mut buf) {}
+        let mut buf = vec![0u8; 4096];
+        match self.fd.read(&mut buf) {
+            Ok(read_size) => self.buf.extend_from_slice(&buf[0..read_size]),
+            Err(e) => {
+                println!("Failed to Read: {e}")
+            }
+        }
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Welcome to Termi");
+            unsafe {
+                // FIXME: needs text we have vec
+                ui.label(std::str::from_utf8_unchecked(&self.buf));
+            }
         });
     }
 }
