@@ -1,11 +1,7 @@
 [package]
 name = "termi"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-eframe = "0.29.1"
-nix = { version = "0.27.1", default-features = false, features = [
-  "term",
-  "process",
-] } # Update to 0.30 or later
+x11rb = "0.13.1"
